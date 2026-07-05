@@ -1,0 +1,1 @@
+export { CLIENT, SERVER, makeMessage } from '../../shared/protocol.js';

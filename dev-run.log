@@ -1,0 +1,45 @@
+
+> kannyan-tetris@0.1.0 dev
+> concurrently "npm run dev:server" "npm run dev:client"
+
+[0] 
+[0] > kannyan-tetris@0.1.0 dev:server
+[0] > node --watch server/index.js
+[0] 
+[1] 
+[1] > kannyan-tetris@0.1.0 dev:client
+[1] > npm --prefix client run dev
+[1] 
+[0] [ws] /ws/tetris attached
+[0] node:events:487
+[0]       throw er; // Unhandled 'error' event
+[0]       ^
+[0] 
+[0] Error: listen EADDRINUSE: address already in use 127.0.0.1:3100
+[0]     at Server.setupListenHandle [as _listen2] (node:net:2008:16)
+[0]     at listenInCluster (node:net:2065:12)
+[0]     at node:net:2274:7
+[0]     at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+[0] Emitted 'error' event on WebSocketServer instance at:
+[0]     at Server.emit (node:events:509:28)
+[0]     at emitErrorNT (node:net:2044:8)
+[0]     at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+[0]   code: 'EADDRINUSE',
+[0]   errno: -4091,
+[0]   syscall: 'listen',
+[0]   address: '127.0.0.1',
+[0]   port: 3100
+[0] }
+[0] 
+[0] Node.js v24.15.0
+[1] 
+[1] > kannyan-tetris-client@0.1.0 dev
+[1] > vite --host 0.0.0.0
+[1] 
+[0] Failed running 'server/index.js'. Waiting for file changes before restarting...
+[1] Port 5173 is in use, trying another one...
+[1] 
+[1]   [32m[1mVITE[22m v6.4.3[39m  [2mready in [0m[1m224[22m[2m[0m ms[22m
+[1] 
+[1]   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5174[22m/[39m
+[1]   [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.200.200:[1m5174[22m/[39m
