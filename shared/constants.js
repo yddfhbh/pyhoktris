@@ -5,6 +5,7 @@ export const VISIBLE_BOARD_HEIGHT = BOARD_HEIGHT - HIDDEN_ROWS;
 export const CELL_SIZE = 28;
 
 export const DEFAULT_GRAVITY_MS = 850;
+export const LOCK_DELAY_MS = 500;
 export const STATE_SEND_INTERVAL_MS = 50;
 
 export const ROOM_ID_LENGTH = 5;

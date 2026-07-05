@@ -5,6 +5,7 @@ import { tryRotate } from './rotation.js';
 import { getGravityMs } from './gravity.js';
 import { addGarbageLines, getAttackLines } from './garbage.js';
 import { ReplayRecorder } from './replay.js';
+import { LOCK_DELAY_MS } from '../../../shared/constants.js';
 
 export class TetrisGame {
   constructor({ seed = Date.now(), onAttack = null, onGameOver = null } = {}) {
@@ -12,11 +13,14 @@ export class TetrisGame {
     this.board = createEmptyBoard();
     this.bag = new SevenBag(seed);
     this.active = createPiece(this.bag.next());
+    this.heldType = null;
+    this.canHold = true;
     this.score = 0;
     this.lines = 0;
     this.level = 1;
     this.alive = true;
     this.gravityTimer = 0;
+    this.lockTimer = 0;
     this.onAttack = onAttack;
     this.onGameOver = onGameOver;
     this.replay = new ReplayRecorder();
@@ -26,6 +30,17 @@ export class TetrisGame {
     if (!this.alive) return;
 
     this.gravityTimer += dt;
+
+    if (this.isGrounded()) {
+      this.lockTimer += dt;
+
+      if (this.lockTimer >= LOCK_DELAY_MS) {
+        this.lockPiece();
+        return;
+      }
+    } else {
+      this.lockTimer = 0;
+    }
 
     if (this.gravityTimer >= getGravityMs({ level: this.level })) {
       this.gravityTimer = 0;
@@ -38,6 +53,7 @@ export class TetrisGame {
 
     if (!collides(this.board, this.active, dx, 0)) {
       this.active.x += dx;
+      this.resetLockDelay();
       this.replay.push('move', { dx });
       return true;
     }
@@ -51,19 +67,53 @@ export class TetrisGame {
     const ok = tryRotate(this.board, this.active);
 
     if (ok) {
+      this.resetLockDelay();
       this.replay.push('rotate');
     }
 
     return ok;
   }
 
+  hold() {
+    if (!this.alive || !this.canHold) return false;
+
+    const currentType = this.active.type;
+
+    if (this.heldType) {
+      const heldType = this.heldType;
+      this.heldType = currentType;
+      this.active = createPiece(heldType);
+    } else {
+      this.heldType = currentType;
+      this.active = createPiece(this.bag.next());
+    }
+
+    this.canHold = false;
+    this.gravityTimer = 0;
+    this.lockTimer = 0;
+    this.replay.push('hold', {
+      heldType: this.heldType,
+      activeType: this.active.type
+    });
+
+    if (collides(this.board, this.active, 0, 0)) {
+      this.alive = false;
+      this.onGameOver?.();
+    }
+
+    return this.alive;
+  }
+
   softDrop() {
-    if (!this.alive) return;
+    if (!this.alive) return false;
 
     if (this.stepDown()) {
       this.score += 1;
       this.replay.push('soft_drop');
+      return true;
     }
+
+    return false;
   }
 
   hardDrop() {
@@ -86,11 +136,19 @@ export class TetrisGame {
 
     if (!collides(this.board, this.active, 0, 1)) {
       this.active.y += 1;
+      this.lockTimer = 0;
       return true;
     }
 
-    this.lockPiece();
     return false;
+  }
+
+  isGrounded() {
+    return collides(this.board, this.active, 0, 1);
+  }
+
+  resetLockDelay() {
+    this.lockTimer = 0;
   }
 
   lockPiece() {
@@ -115,6 +173,9 @@ export class TetrisGame {
 
   spawnPiece() {
     this.active = createPiece(this.bag.next());
+    this.canHold = true;
+    this.gravityTimer = 0;
+    this.lockTimer = 0;
 
     if (collides(this.board, this.active, 0, 0)) {
       this.alive = false;
@@ -131,6 +192,8 @@ export class TetrisGame {
     return {
       board: this.board,
       active: this.active,
+      heldType: this.heldType,
+      canHold: this.canHold,
       next: this.bag.preview(5),
       score: this.score,
       lines: this.lines,

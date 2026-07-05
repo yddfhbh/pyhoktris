@@ -1,8 +1,10 @@
 import { BOARD_HEIGHT, BOARD_WIDTH, CELL_SIZE, COLORS, HIDDEN_ROWS } from '../../../shared/constants.js';
+import { PIECES } from '../game/pieces.js';
 
-export function createCanvasRenderer({ canvas, opponentCanvas }) {
+export function createCanvasRenderer({ canvas, opponentCanvas, holdCanvas }) {
   const ctx = canvas.getContext('2d');
   const opponentCtx = opponentCanvas.getContext('2d');
+  const holdCtx = holdCanvas.getContext('2d');
 
   function drawCell(context, x, y, size, value) {
     context.fillStyle = COLORS[value] ?? COLORS.empty;
@@ -45,10 +47,71 @@ export function createCanvasRenderer({ canvas, opponentCanvas }) {
     }
   }
 
+  function drawPreviewPiece(context, type, size, enabled = true) {
+    context.clearRect(0, 0, context.canvas.width, context.canvas.height);
+    context.fillStyle = enabled ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.04)';
+    context.fillRect(0, 0, context.canvas.width, context.canvas.height);
+
+    if (!type) {
+      context.fillStyle = '#aab1d7';
+      context.font = '12px Arial';
+      context.textAlign = 'center';
+      context.fillText('EMPTY', context.canvas.width / 2, context.canvas.height / 2);
+      return;
+    }
+
+    drawMiniMatrix(context, PIECES[type], size);
+  }
+
+  function drawMiniMatrix(context, matrix, size) {
+    if (!matrix?.length) return;
+    const occupiedCells = [];
+
+    for (let y = 0; y < matrix.length; y += 1) {
+      for (let x = 0; x < matrix[y].length; x += 1) {
+        if (matrix[y][x]) {
+          occupiedCells.push({ x, y, value: matrix[y][x] });
+        }
+      }
+    }
+
+    if (occupiedCells.length === 0) return;
+
+    const minX = Math.min(...occupiedCells.map((cell) => cell.x));
+    const maxX = Math.max(...occupiedCells.map((cell) => cell.x));
+    const minY = Math.min(...occupiedCells.map((cell) => cell.y));
+    const maxY = Math.max(...occupiedCells.map((cell) => cell.y));
+
+    const width = maxX - minX + 1;
+    const height = maxY - minY + 1;
+    const offsetX = Math.floor((context.canvas.width - width * size) / 2);
+    const offsetY = Math.floor((context.canvas.height - height * size) / 2);
+
+    for (const cell of occupiedCells) {
+      context.fillStyle = COLORS[cell.value] ?? COLORS.empty;
+      context.fillRect(
+        offsetX + (cell.x - minX) * size,
+        offsetY + (cell.y - minY) * size,
+        size,
+        size
+      );
+
+      context.strokeStyle = 'rgba(255,255,255,0.08)';
+      context.lineWidth = 1;
+      context.strokeRect(
+        offsetX + (cell.x - minX) * size + 0.5,
+        offsetY + (cell.y - minY) * size + 0.5,
+        size - 1,
+        size - 1
+      );
+    }
+  }
+
   return {
     render(state) {
       drawBoard(ctx, state.board, CELL_SIZE);
       drawPiece(ctx, state.active, CELL_SIZE);
+      drawPreviewPiece(holdCtx, state.heldType, 20, state.canHold);
 
       if (!state.alive) {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
